@@ -28,6 +28,8 @@ import javax.annotation.Nullable;
 public class OrientationModule extends ReactContextBaseJavaModule implements LifecycleEventListener{
     final BroadcastReceiver receiver;
 
+    boolean registered = false;
+
     public OrientationModule(ReactApplicationContext reactContext) {
         super(reactContext);
         final ReactApplicationContext ctx = reactContext;
@@ -146,16 +148,21 @@ public class OrientationModule extends ReactContextBaseJavaModule implements Lif
     public void onHostResume() {
         final Activity activity = getCurrentActivity();
 
+        if (registered) return;
+
         assert activity != null;
         activity.registerReceiver(receiver, new IntentFilter("onConfigurationChanged"));
+        registered = true;
     }
     @Override
     public void onHostPause() {
         final Activity activity = getCurrentActivity();
         if (activity == null) return;
+        if (! registered) return;
         try
         {
             activity.unregisterReceiver(receiver);
+            registered = false;
         }
         catch (java.lang.IllegalArgumentException e) {
             FLog.e(ReactConstants.TAG, "receiver already unregistered", e);
@@ -166,9 +173,11 @@ public class OrientationModule extends ReactContextBaseJavaModule implements Lif
     public void onHostDestroy() {
         final Activity activity = getCurrentActivity();
         if (activity == null) return;
+        if (! registered) return;
         try
         {
             activity.unregisterReceiver(receiver);
+            registered = false;
         }
         catch (java.lang.IllegalArgumentException e) {
             FLog.e(ReactConstants.TAG, "receiver already unregistered", e);
